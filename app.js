@@ -116,7 +116,7 @@ _['app'] = function initApp () {
             <div class="desktoptooltip">
                 Para ter uma experiência completa acesse no mobile.
                 <br/> <br/>
-                Copie este link no seu celular: <a href="google.com">link.com</a>
+                Copie este link no seu celular: <a href="tinyurl.com/wesocial">link.com</a>
             </div>
 
         </div>`)
