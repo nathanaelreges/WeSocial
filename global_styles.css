@@ -1,0 +1,199 @@
+* {box-sizing: border-box;}
+
+html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+}
+
+body {
+    will-change: transform;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    display: flex;
+
+    font-family: 'Roboto', sans-serif;
+    
+    touch-action: manipulation;
+    overscroll-behavior: contain;
+    user-select: none;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        
+    word-wrap: break-word;
+}    
+
+
+@media (min-width: 450px), (min-height: 900px) {
+    body {
+        background-image: linear-gradient( 135deg, #FF6FD8 10%, #3813C2 100%);
+    } 
+}
+
+
+
+.tela{
+    will-change: transform;
+    width: 100%;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+}
+
+
+.scroller {
+    /*will-change: transform;*/
+    width: 100%;
+    overflow-y: overlay;
+    overflow-x: hidden;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+}
+
+
+.scroller_foot > * {
+    width: 100%;
+}
+
+.scroller::-webkit-scrollbar {
+    width: 5px;
+}
+
+.scroller::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,.2);
+}
+
+
+
+
+.head {
+    /*will-change: transform;*/
+    position: fixed;
+    top: 0;
+    height: 50px;
+    width: 100%;
+    background-color: #6b42f4;
+    box-shadow: 0px 1px 7px 3px rgba(0,0,0,0.5);
+    color: white;
+}
+
+
+
+.foot {
+    /*will-change: transform;*/
+    position: fixed;
+    bottom: 0;
+    height: 50px;
+    width: 100%;
+    background-color: #6b42f4;
+}
+
+
+
+
+.tool{
+    will-change: transform, opacity; /*this needs to stay heare because of composition problems,
+    if not the toolEle is painted behind the scroller*/
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    height: 50px;
+    width: 50px;
+    padding: 10px;
+    border-radius: 45px;
+    background-color: #6b42f4;
+    box-shadow: 1px 2px 7px 0px rgba(0,0,0,0.7);
+}
+.tool_press{
+    transform: scale(0.9);
+}
+.tool * {
+    pointer-events: none;
+}
+
+
+
+
+.arrow {    
+    padding: 0 15px 0 20px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+.arrow svg {
+    pointer-events: none;
+    height: 0.9rem;  
+}
+
+
+
+
+
+.headspace{
+    top:50px;
+}
+.footspace{
+    bottom:50px;
+}
+.headfootspace{
+    top:50px;
+    bottom:50px;
+}
+
+.item {
+    background-color: white;
+    border-radius: 5px;
+}
+
+.background {
+    background-color: #e5e4e4;
+}
+
+.transition {
+    transition: 0.21s transform;
+    transition-timing-function: ease-in;
+}
+
+.transition_opacity {
+    transition: transform 0.21s, opacity 0.21s;
+    transition-timing-function: ease-in;
+}
+
+.blank{
+    background: white;
+}    
+
+.blockScroll {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 100;
+}
+
+.glow{
+    transform: scale(0.9);
+}
+
+.hidescrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.shadow{
+    box-shadow: 1px 2px 7px 0px rgba(0,0,0,0.7);
+}
+
+
+/*about to be removed*/
+
+
+.tool_foot{
+    bottom: 60px;    
+}
+.scroller_head{
+    top: 50px;
+
+}
+.scroller_foot{
+    bottom: 50px;
+}
