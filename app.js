@@ -78,6 +78,15 @@ _['app'] = function initApp () {
         const fitsToolTip = tipBoxWidth > minTipWidth
         if(!fitsToolTip) return
 
+        const toolTipEle = getToolTip(minTipWidth, maxMobileWidth)
+        
+
+        document.body.append(toolTipEle)
+    }
+
+
+    function getToolTip (minTipWidth, maxMobileWidth) {
+
 
         const tipBoxEle = newEle(`<div class="desktoptooltip-box">
             <style>
@@ -95,7 +104,7 @@ _['app'] = function initApp () {
                 .desktoptooltip {
                     margin: auto;
                     width: 85%;
-                    max-width: 200px;
+                    max-width: 250px;
                     text-align: center;
                     background: rgba(0,0,0,0.2);
                     border-radius: 10px;
@@ -103,6 +112,22 @@ _['app'] = function initApp () {
                     color: white;
                     letter-spacing: 1px;
                     font-weight: 100;
+                }
+
+                .desktoptooltip a {
+                    font-weight: 400;
+                    color: black;
+                    text-decoration: none;
+                }
+
+                    .desktoptooltip a:visited {
+                        color: black;
+                    }
+                /**/
+
+                
+                .desktoptooltip p {
+                    margin: 0px 0px 10px 0px;
                 }
 
                 @media screen and (max-width: ${minTipWidth * 2 + maxMobileWidth}px) {
@@ -114,13 +139,13 @@ _['app'] = function initApp () {
             </style>
             
             <div class="desktoptooltip">
-                Para ter uma experiência completa acesse no mobile.
-                <br/> <br/>
-                Copie este link no seu celular: <a href="tinyurl.com/wesocial">link.com</a>
+                <p>Para ter uma experiência completa acesse no mobile.</p>
+                <a href="https://tinyurl.com/wesocial">tinyurl.com/wesocial</a>
             </div>
 
         </div>`)
 
-        document.body.append(tipBoxEle)
+        return tipBoxEle
+
     }
 }
