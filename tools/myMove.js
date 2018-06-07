@@ -5,7 +5,7 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
     let moveRef = 0
     
 
-    const trowModule = getTrow(maxValue, 0, renderMove)
+    let trowModule = getTrow(maxValue, 0, renderMove)
 
 
     module.move = function (value) {
@@ -73,7 +73,7 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
     module.moveJump = function () {
         const nowTime = Date.now()
 
-        trowModule.trow({acel: -0.001, velo: 0.6}).then((x)=>{
+        trowModule.trow({acel: -0.001, velo: 0.6, time: nowTime}).then((x)=>{
             if (x == 'reachedMax') {
                 module.listeners.endMove('reachedMax')
             }
@@ -110,8 +110,8 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
         module.trow = (time, value, velo, acel) => {
             if(typeof time == 'object') {
                 const obj = time
-                time = saveTime
-                value = saveValue
+                value = obj.value || saveValue
+                time = obj.time || saveTime
                 velo = obj.velo || saveVelo
                 acel = obj.acel
 
