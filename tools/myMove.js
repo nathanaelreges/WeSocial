@@ -1,11 +1,11 @@
-_['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
+_['tools/myMove'] = function getMyMove (renderMove, {maxValue, minValue = 0, startValue = 0, acelTimes = 1}) {
     const module = {}
-            
+    if(acelTimes < 0){acelTimes = 1}        
     let startMoveY = 0
     let moveRef = 0
     
 
-    let trowModule = getTrow(maxValue, 0, renderMove)
+    let trowModule = getTrow(renderMove)
 
 
     module.move = function (value) {
@@ -18,13 +18,13 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
             }
         } 
         
-        let moveValue = value - startMoveY + moveRef
-        
+        let moveValue = value - startMoveY + (moveRef || startValue)
+        moveValue = moveValue
         if(moveValue > maxValue){
             moveValue = maxValue
         }
-        else if(moveValue < 0){
-            moveValue = 0
+        else if(moveValue < minValue){
+            moveValue = minValue
         }
 
         renderMove(moveValue)
@@ -43,26 +43,47 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
     }
 
 
-    module.endMove = function (value) {
-        const acel = -0.001
-        
-        const moveValue = value - startMoveY + moveRef
+    module.endMove = function (value) { 
+        let  moveValue = value - startMoveY + (moveRef || startValue)
+        moveValue = moveValue
 
-        if(moveValue >= maxValue){
+        if(moveValue >= maxValue) {
             module.listeners.endMove('reachedMax')
+            startValue = maxValue
         }
-        else if(moveValue <= 0){
+        else if(moveValue <= minValue) {
             module.listeners.endMove('reachedMin')
+            startValue = minValue
+        }
+        else if(moveValue == startValue) {
+            module.listeners.endMove('reachedStart')
         }
         else {
-            trowModule.trow({acel}).then((x)=>{
-                if (x == 'reachedMax') {
-                    module.listeners.endMove('reachedMax')
-                }
-                else if (x == 'reachedMin') {
-                    module.listeners.endMove('reachedMin')
-                }
-            })
+
+            if(moveValue > startValue) {
+                const acel = -0.001 * acelTimes
+                trowPromise = trowModule.trow({acel, maxValue, minValue: startValue}).then((x)=>{
+                    if (x == 'reachedMax') {
+                        module.listeners.endMove('reachedMax')
+                        startValue = maxValue
+                    }
+                    else if (x == 'reachedMin') {
+                        module.listeners.endMove(startValue == minValue? 'reachedMin' : 'reachedStart')
+                    }
+                })
+            }
+            else {
+                const acel = 0.001 * acelTimes
+                trowPromise = trowModule.trow({acel, maxValue: startValue, minValue}).then((x)=>{
+                    if (x == 'reachedMax') {
+                        module.listeners.endMove(startValue == maxValue? 'reachedMax' : 'reachedStart')
+                    }
+                    else if (x == 'reachedMin') {
+                        module.listeners.endMove('reachedMin')
+                        startValue = minValue
+                    }
+                })
+            }
         }
         
         moveRef = 0
@@ -73,7 +94,7 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
     module.moveJump = function () {
         const nowTime = Date.now()
 
-        trowModule.trow({acel: -0.001, velo: 0.6, time: nowTime}).then((x)=>{
+        trowModule.trow({acel: -0.001 * acelTimes, velo: 0.6, time: nowTime, maxValue, minValue: startValue}).then((x)=>{
             if (x == 'reachedMax') {
                 module.listeners.endMove('reachedMax')
             }
@@ -81,6 +102,42 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
                 module.listeners.endMove('reachedMin')
             }
         })
+        
+        moveRef = 0
+        startMoveY = 0
+    }
+
+    module.goTo = function (to = 'max') {
+        if(to != 'max' && to != 'min' && to != 'switch') return
+
+        if(to = 'switch'){
+            if(startValue == minValue){
+                to = 'max'
+            }
+            else if(startValue == maxValue){
+                to = 'min'
+            }
+        }
+
+        const nowTime = Date.now()
+        const thisMaxValue = to == 'max'? maxValue : startValue
+        const thisMinValue = to == 'max'? startValue : minValue
+        const deltaValue = to == 'max'? thisMaxValue - thisMinValue : thisMinValue - thisMaxValue
+        const acel = (2 * deltaValue) / (200 * 200) //Yeah physics, bitch!
+        const velo = 0
+
+        trowModule.trow({acel, velo, time: nowTime, maxValue: thisMaxValue, minValue: thisMinValue}).then((x)=>{
+            if(to == 'max') {
+                module.listeners.endMove('reachedMax')
+                startValue = maxValue
+            }
+            else {
+                module.listeners.endMove('reachedMin')
+                startValue = minValue
+            }
+        })
+
+        
         
         moveRef = 0
         startMoveY = 0
@@ -95,8 +152,10 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
     
 
 
-    function getTrow (maxValue, minValue, render) { 
+    function getTrow (render) { 
         const module = {}
+        let maxValue = undefined
+        let minValue = undefined
         let endTrowLoop = undefined
         let trowRuning = false
         let resolvePromise = undefined
@@ -107,19 +166,24 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
 
 
 
-        module.trow = (time, value, velo, acel) => {
+        module.trow = (time, value, velo, acel, theMaxValue, theMinValue) => {
             if(typeof time == 'object') {
                 const obj = time
-                value = obj.value || saveValue
-                time = obj.time || saveTime
-                velo = obj.velo || saveVelo
+                value = typeof obj.value === 'number' ?  obj.value : saveValue
+                time = typeof obj.time === 'number' ?  obj.time : saveTime
+                velo = typeof obj.velo === 'number' ?  obj.velo : saveVelo
                 acel = obj.acel
+                theMaxValue = obj.maxValue
+                theMinValue = obj.minValue
 
                 if(Date.now() - time > 200) {
                     velo = 0
                     time = Date.now()
                 }
             }
+
+            maxValue = theMaxValue
+            minValue = theMinValue
 
             trowRuning = true
             endTrowLoop = trow(time, value, velo, acel, callBack)
@@ -219,15 +283,19 @@ _['tools/myMove'] = function getMyMove (renderMove, {maxValue}) {
                 if(endTrow) return
 
                 const nowTime = Date.now()
-                const newVelo = velo + (nowTime - time) * acel
-                let newValue = value + (nowTime - time) * newVelo
+                const deltaTime = nowTime - time
+                const newValue = value + velo * deltaTime + (acel * deltaTime * deltaTime) / 2
 
                 callBack(newValue)
                 requestAnimationFrame(()=>{
-                    _trow(nowTime, newValue, newVelo, acel, callBack)
+                    _trow(time, value, velo, acel, callBack)
                 })
                 
             }                        
         }
     }
 }
+
+
+
+//// trow(min, max) min vai ser o start e max vai min ou maz dependendo da direção do trow

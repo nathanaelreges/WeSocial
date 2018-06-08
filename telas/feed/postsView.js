@@ -405,7 +405,7 @@ _['telas/feed/postsView'] = function createPostsView (postsData) {
 
         thisEle.addEventListener('touchmove',() => {
             tipModule.out()
-        }, {once: true})
+        }, {once: true, passive: true})
 
     }
 
