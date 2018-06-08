@@ -1,7 +1,6 @@
 _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
 
     const newEle = _['tools/myLib'].newEle
-    const tryCall = _['tools/myLib'].tryCall
     const settingsIco = _['img/myIcos'].settingsBlue
     const myTime = _['tools/myTime']
     const getMyMove = _['tools/myMove']
@@ -14,7 +13,13 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
     
     function startListener (e)  {
 
-        const clickBugFixPromise = new Promise (x=>setTimeout(x,300))
+        const clickBugFixPromise = new Promise (x=>setTimeout(x,800))
+        /*  
+            When cliking, the browser (on developr tools) may fire events in this sequence:
+                touchstart, touchend, mousedown, mouseup
+            Thus breaking the logic, so we wait until the browser finishes this madness
+                to protect our logic.
+        */
         
         thisEle.removeEventListener('mousedown', startListener)
         thisEle.removeEventListener('touchstart', startListener)
@@ -31,11 +36,7 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
                 thisEle.addEventListener('mousedown', startListener, {passive: true})
                 thisEle.addEventListener('touchstart', startListener, {passive: true})
             })
-            /*thisEle.addEventListener(
-                pointerType == 'mouse'? 'mousedown' : 'touchstart',
-                startListener,
-                {passive: true}
-            )*/
+            
         })
         
     }
@@ -56,7 +57,7 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
         let syncEvents = 'endPhase'
         
         let clickTime = Date.now()
-        let moved = false
+        let moves = 0
         
         const paneHeight = 200
         const minValue = -paneHeight
@@ -103,16 +104,14 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
 
                 moveModule.move(touchY)
 
-                moved = false
+                moves = 0
                 clickTime = Date.now()
             },
             moveListener (e) {
                 if(syncEvents != 'endPhase') return
                 const touchY = pointerType == 'mouse'? e.clientY: e.touches[0].pageY
             
-                if(!moved){
-                    moved = true
-                }
+                moves++
 
                 moveModule.move(touchY)
             },
@@ -121,7 +120,7 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
                 syncEvents = 'startPhase'
 
                 const cliked = Date.now() - clickTime < 300
-                if(cliked && !moved) { 
+                if(cliked && moves < 4) { 
                     moveModule.goTo('switch')
                 }
                 else{
