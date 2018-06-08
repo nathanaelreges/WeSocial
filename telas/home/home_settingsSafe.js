@@ -1,69 +1,78 @@
-_['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
+_['telas/home/home_settings'] = function initSettingsHandler (ele) {
 
     const newEle = _['tools/myLib'].newEle
-    const tryCall = _['tools/myLib'].tryCall
     const settingsIco = _['img/myIcos'].settingsBlue
     const myTime = _['tools/myTime']
     const getMyMove = _['tools/myMove']
 
 
-    thisEle.addEventListener('mousedown', startListener, {passive: true})
-    thisEle.addEventListener('touchstart', startListener, {passive: true})
+    let moveModule = undefined
+    let inited = false
+    let syncEvents = 'startPhase'
+
+
+
+
+
+    ele.addEventListener('mousedown', startListener, {passive: true})
+    ele.addEventListener('touchstart', startListener, {passive: true})
 
     
     
     function startListener (e)  {
+        if(syncEvents != 'startPhase') return
+        syncEvents = 'endPhase'
+        const touchY = e.touches[0].pageY
 
-        
-        thisEle.removeEventListener('mousedown', startListener)
-        thisEle.removeEventListener('touchstart', startListener)
- 
-        const {eles, removeEles} = initEles(thisEle)
-        
-        
-        const pointerType = e.constructor.name === 'MouseEvent' ? 'mouse' : 'touch'
+        if(!inited) {
+            inited = true
+            init(e)
+        }
 
-        initMoviment(thisEle, eles, pointerType).then(()=>{
+        moveModule.move(touchY)
+    }
 
-            removeEles()
-            thisEle.addEventListener(
-                pointerType == 'mouse'? 'mousedown' : 'touchstart',
-                startListener,
-                {passive: true}
-            )
-            
-        })
-        
+    function moveListener (e) {
+        if(syncEvents != 'endPhase') return
+        const touchY = e.touches[0].pageY
+
+        moveModule.move(touchY)
+    }
+
+    function endListener (e) {
+        if(syncEvents != 'endPhase') return
+        syncEvents = 'startPhase'
+        const touchY = e.changedTouches[0].pageY
+    
+        moveModule.endMove(touchY)
     }
 
 
-    
-    
 
 
 
+    function init (e) {
 
+        const pointer = e.constructor.name === 'MouseEvent' ? 'mouse' : 'touch'
+        addListeners(pointer)
 
-    function initMoviment (eleToListen, elesToAnimate, pointerType) {
-    
-        
-        let myTimeId = undefined
-        let resolvePromise = undefined
-        let syncEvents = 'endPhase'
-        
-        let clickTime = Date.now()
-        let moved = false
         
         const paneHeight = 200
         const minValue = -paneHeight
         const maxValue = 0
         let phase = 'opening'
+        let myTimeId = undefined
+    
 
-        const moveModule = getMyMove(renderMove, {maxValue, minValue, acelTimes: 1.1})
+
+
+        const {newButtom, settingsPane, background, removeEles} = initEles()
+
+        moveModule = getMyMove(renderMove, {maxValue, minValue})
 
         moveModule.listeners = {
             startMove () {
-
+                
             },
             endMove (arg) {
                 if(phase == 'opening') {
@@ -91,57 +100,11 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
         }
     
 
-        const touchListeners = { 
-            startListener (e)  {
-                if(syncEvents != 'startPhase') return
-                syncEvents = 'endPhase'
-                const touchY = e.touches[0].pageY
-
-                moveModule.move(touchY)
-
-                moved = false
-                clickTime = Date.now()
-            },
-            moveListener (e) {
-                if(syncEvents != 'endPhase') return
-                const touchY = e.touches[0].pageY
-            
-                if(!moved){
-                    moved = true
-                }
-
-                moveModule.move(touchY)
-            },
-            endListener (e) {
-                if(syncEvents != 'endPhase') return
-                syncEvents = 'startPhase'
-
-                const cliked = Date.now() - clickTime < 300
-                if(cliked && !moved) { 
-                    moveModule.goTo('switch')
-                }
-                else{
-                    const touchY = e.changedTouches[0].pageY
-                    moveModule.endMove(touchY)    
-                }
-                
-            }
-        }
-        
-        const removeListeners = addListeners(eleToListen, touchListeners, pointerType)
-
-
-
-        const thisPromise = new Promise (x=> resolvePromise = x)
-
-        return thisPromise
-
-
 
         function renderMove (moveValue) {
-            elesToAnimate.background.style.opacity  = `${-moveValue/400}`
-            elesToAnimate.newButtom.style.transform = `translateY(${moveValue}px)`
-            elesToAnimate.settingsPane.style.transform = `translateY(${moveValue}px)`
+            background.style.opacity  = `${-moveValue/400}`
+            newButtom.style.transform = `translateY(${moveValue}px)`
+            settingsPane.style.transform = `translateY(${moveValue}px)`
         }
 
 
@@ -149,40 +112,52 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
             if(type !== 'timeClick') {
                 myTime.remove(myTimeId)
             }
-            removeListeners()
-            resolvePromise()
+           
+            resetListeners()
+            removeEles()
+            inited = false
+            moveModule = undefined
+            
         }
 
-    }
 
+        function addListeners (pointer) {
+            ele.addEventListener(pointer == 'mouse'? 'mousemove': 'touchmove', moveListener, {passive: true})
+            ele.addEventListener(pointer == 'mouse'? 'mouseup': 'touchend', endListener, {passive: true})
 
-    
-    
-    function addListeners (ele, {startListener, moveListener, endListener}, pointerType) {
-    
-
-        ele.addEventListener(pointerType == 'mouse'? 'mousedown' : 'touchstart' , startListener, {passive: true})
-        ele.addEventListener(pointerType == 'mouse'? 'mousemove': 'touchmove', moveListener, {passive: true})
-        ele.addEventListener(pointerType == 'mouse'? 'mouseup': 'touchend', endListener, {passive: true})
-        if(pointerType == 'mouse'){
-            ele.addEventListener('mouseleave', endListener, {passive: true})
+            if(pointer == 'mouse'){
+                ele.removeEventListener('touchstart', startListener)
+                ele.addEventListener('mouseleave', endListener, {passive: true})
+            }
+            else {
+                ele.removeEventListener('mousedown', startListener)
+            }
         }
         
-        return resetListeners
-        
-        function resetListeners (pointerType) {
-            ele.removeEventListener(pointerType == 'mouse'? 'mousedown' : 'touchstart' , startListener)
-            ele.removeEventListener(pointerType == 'mouse'? 'mousemove': 'touchmove', moveListener)
-            ele.removeEventListener(pointerType == 'mouse'? 'mouseup': 'touchend', endListener)
-            if(pointerType == 'mouse'){
+        function resetListeners (pointer) {
+            ele.removeEventListener(pointer == 'mouse'? 'mousemove': 'touchmove', moveListener)
+            ele.removeEventListener(pointer == 'mouse'? 'mouseup': 'touchend', endListener)
+
+            if(pointer == 'mouse'){
                 ele.removeEventListener('mouseleave', endListener)
+                ele.addEventListener('touchstart', startListener, {passive: true})
+            }
+            else {
+                ele.addEventListener('touchstart', startListener, {passive: true})
             }
         }
 
+        
+    
     }
 
 
-    function initEles (ele) {
+    
+    
+
+
+
+    function initEles () {
         const style = newEle(
             `<style>
                 .settings_button {
@@ -269,7 +244,7 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
         ele.append(style)
         ele.append(settingsPane)
 
-        return {eles : {newButtom, settingsPane, background} , removeEles}
+        return { newButtom, settingsPane, background, removeEles }
 
         function removeEles () {
             newButtom.remove()
