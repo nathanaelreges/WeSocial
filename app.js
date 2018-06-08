@@ -140,7 +140,7 @@ _['app'] = function initApp () {
             
             <div class="desktoptooltip">
                 <p>Para ter uma experiência completa acesse no mobile.</p>
-                <a href="https://tinyurl.com/wesocial">tinyurl.com/wesocial</a>
+                <a href="https://tinyurl.com/socialwe">tinyurl.com/socialwe</a>
             </div>
 
         </div>`)
