@@ -120,7 +120,7 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
                 syncEvents = 'startPhase'
 
                 const cliked = Date.now() - clickTime < 300
-                if(cliked && moves < 4) { 
+                if(cliked && moves < (pointerType == 'mouse'? 4 : 1)) { 
                     moveModule.goTo('switch')
                 }
                 else{
