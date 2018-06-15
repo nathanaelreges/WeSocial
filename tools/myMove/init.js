@@ -101,7 +101,7 @@ _['tools/myMove/init.js'] = function getMyMove (renderFun, maxValue, eleToListen
         if(position != gluedTo) {return}
     
         const {from, to} = gluedTo == 'low'? {from: lowestValue, to: highestValue} : {from: highestValue, to: lowestValue}
-        
+    
         toss.reset()
         render.looseRef()
         render.refer(from) 
@@ -112,7 +112,6 @@ _['tools/myMove/init.js'] = function getMyMove (renderFun, maxValue, eleToListen
         }            
         
         toss.tossDifferent('jumpToMiddle', from, to)
-
     }
 
 

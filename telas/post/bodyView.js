@@ -230,6 +230,7 @@ _['telas/post/bodyView'] = function createbodyView (data) {
           pullModule.listeners = {
               onPullComplete () {
                 thisTela.remove()
+                thisEle.remove()//Temoporary fix
                 module.listeners.onClosedPost()
               }
           }
@@ -249,7 +250,6 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
 
     module.tela = thisTela
-
 
     let removing = false
     
@@ -287,7 +287,7 @@ _['telas/post/bodyView'] = function createbodyView (data) {
             
             postBoxEle.style.willChange = 'transform'
             thisEle.style.willChange = 'opacity'
-        },
+        }
 
         moveModule.onEndMove = (arg) => {
             if(arg === 'max') {
@@ -346,7 +346,6 @@ _['telas/post/bodyView'] = function createbodyView (data) {
                     clickAllowed = true
                 }, 300)
                 this.value = 'undefined'
-
             }
         }
 
