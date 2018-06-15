@@ -70,6 +70,15 @@ body {
 
 
 
+.my_scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.my_scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,.2);
+}
+
+
 .head {
     /*will-change: transform;*/
     position: fixed;

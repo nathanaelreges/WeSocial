@@ -3,141 +3,117 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
     const newEle = _['tools/myLib'].newEle
     const settingsIco = _['img/myIcos'].settingsBlue
     const myTime = _['tools/myTime']
-    const getMyMove = _['tools/myMove']
+    const getMyMove = _['tools/myMove/init.js']
+
+    let pullModule = undefined
+
 
 
     thisEle.addEventListener('mousedown', startListener, {passive: true})
     thisEle.addEventListener('touchstart', startListener, {passive: true})
 
     
+
+    let boxEle = undefined
+    setBoxEle()
+
     
     function startListener (e)  {
 
-        const clickBugFixPromise = new Promise (x=>setTimeout(x,800))
-        /*  
-            When cliking, the browser (on developr tools) may fire events in this sequence:
-                touchstart, touchend, mousedown, mouseup
-            Thus breaking the logic, so we wait until the browser finishes this madness
-                to protect our logic.
-        */
-        
         thisEle.removeEventListener('mousedown', startListener)
         thisEle.removeEventListener('touchstart', startListener)
- 
-        const {eles, removeEles} = initEles(thisEle)
         
+
+        const {eles} = initEles(boxEle)
         
-        const pointerType = e.constructor.name === 'MouseEvent' ? 'mouse' : 'touch'
 
-        initMoviment(thisEle, eles, pointerType).then(()=>{
-
-            removeEles()
-            clickBugFixPromise.then(()=>{
-                thisEle.addEventListener('mousedown', startListener, {passive: true})
-                thisEle.addEventListener('touchstart', startListener, {passive: true})
-            })
-            
-        })
+        pullModule = initMoviment(boxEle, eles, e)
+        
+        pullModule.onEnd = () => {
+            boxEle.remove()
+            setBoxEle()
+            thisEle.addEventListener('mousedown', startListener, {passive: true})
+            thisEle.addEventListener('touchstart', startListener, {passive: true})  
+        }
         
     }
 
 
+
+
+
+
+
+    function setBoxEle () {
+        boxEle = newEle(`<div
+            style="position: absolute; top:0; height: 50px; width: 60px;">
+        </div>`)
+        thisEle.append(boxEle)
+    }
+
+
+
+    function initMoviment (eleToListen, elesToAnimate, startEvent) {
     
-    
-
-
-
-
-
-    function initMoviment (eleToListen, elesToAnimate, pointerType) {
-    
-        
+        const module = {}
         let myTimeId = undefined
-        let resolvePromise = undefined
-        let syncEvents = 'endPhase'
+        let clickTime = undefined
         
-        let clickTime = Date.now()
-        let moves = 0
-        
+
+
         const paneHeight = 200
-        const minValue = -paneHeight
-        const maxValue = 0
+        const maxValue = -paneHeight
         let phase = 'opening'
 
-        const moveModule = getMyMove(renderMove, {maxValue, minValue, acelTimes: 1.1})
+        const moveModule = getMyMove(renderMove, maxValue, eleToListen, {acelTimes: 1.05})
 
-        moveModule.listeners = {
-            startMove () {
+        moveModule.onStartMove = () => {
+            clickTime = Date.now()
+        }
 
-            },
-            endMove (arg) {
-                if(phase == 'opening') {
+        moveModule.onEndMove = (arg) => {
+            if(phase == 'opening') {
+                if(arg == 'max') {
+                    
+                    phase = 'closing'
+                    myTimeId = myTime.addFun(closeController.bind(undefined, 'timeClick'))
 
-                    if(arg == 'reachedMin') {
-                        phase = 'closing'
-                        myTimeId = myTime.addFun(closeController.bind(undefined, 'timeClick'))
+                }
+                else if(arg == 'zero') {
+                    
+                    const clicked = Date.now() - clickTime < 300
+                    if(clicked){
+                        moveModule.switch()
                     }
-                    else if(arg == 'reachedMax') {
+                    else{
                         closeController('normal')
                     }
 
                 }
-                else if(phase == 'closing') {
+            }
+            else if(phase == 'closing') {
+                if(arg == 'zero') {
+                    
+                    phase = 'opening'
+                    closeController('normal')
 
-                    if(arg == 'reachedMax') {
-                        phase = 'opening'
-                        closeController('normal')
-                    }
-                    else if(arg == 'reachedMin') {
+                }
+                else if(arg == 'max') {
+
+                    const clicked = Date.now() - clickTime < 300
+                    if(clicked){
+                        moveModule.switch()
                     }
 
                 }
             }
         }
     
-
-        const touchListeners = { 
-            startListener (e)  {
-                if(syncEvents != 'startPhase') return
-                syncEvents = 'endPhase'
-                const touchY = pointerType == 'mouse'? e.clientY: e.touches[0].pageY
-
-                moveModule.move(touchY)
-
-                moves = 0
-                clickTime = Date.now()
-            },
-            moveListener (e) {
-                if(syncEvents != 'endPhase') return
-                const touchY = pointerType == 'mouse'? e.clientY: e.touches[0].pageY
-            
-                moves++
-
-                moveModule.move(touchY)
-            },
-            endListener (e) {
-                if(syncEvents != 'endPhase') return
-                syncEvents = 'startPhase'
-
-                const cliked = Date.now() - clickTime < 300
-                if(cliked && moves < (pointerType == 'mouse'? 4 : 1)) { 
-                    moveModule.goTo('switch')
-                }
-                else{
-                    const touchY = pointerType == 'mouse'? e.clientY : e.changedTouches[0].pageY
-                    moveModule.endMove(touchY)    
-                }
-                
-            }
-        }
+        moveModule.moveAlreadyStarted({startEvent})
         
-        const removeListeners = addListeners(eleToListen, touchListeners, pointerType)
 
-
-
-        const thisPromise = new Promise (x=> resolvePromise = x)
-
-        return thisPromise
+        
+        return module
 
 
 
@@ -149,37 +125,14 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
 
 
         function closeController (type) {
-            if(type !== 'timeClick') {
+            if(type == 'timeClick') {
+                moveModule.switch()
+            }
+            else {
                 myTime.remove(myTimeId)
+                module.onEnd()
             }
-            removeListeners()
-            resolvePromise()
-        }
-
-    }
-
-
-    
-    
-    function addListeners (ele, {startListener, moveListener, endListener}, pointerType) {
-    
-
-        ele.addEventListener(pointerType == 'mouse'? 'mousedown' : 'touchstart' , startListener, {passive: true})
-        ele.addEventListener(pointerType == 'mouse'? 'mousemove': 'touchmove', moveListener, {passive: true})
-        ele.addEventListener(pointerType == 'mouse'? 'mouseup': 'touchend', endListener, {passive: true})
-        if(pointerType == 'mouse'){
-            ele.addEventListener('mouseleave', endListener, {passive: true})
-        }
-        
-        return resetListeners
-        
-        function resetListeners (pointerType) {
-            ele.removeEventListener(pointerType == 'mouse'? 'mousedown' : 'touchstart' , startListener)
-            ele.removeEventListener(pointerType == 'mouse'? 'mousemove': 'touchmove', moveListener)
-            ele.removeEventListener(pointerType == 'mouse'? 'mouseup': 'touchend', endListener)
-            if(pointerType == 'mouse'){
-                ele.removeEventListener('mouseleave', endListener)
-            }
+            
         }
 
     }
@@ -267,23 +220,19 @@ _['telas/home/home_settings'] = function initSettingsHandler (thisEle) {
             </div>`
         )
 
+
+        
+
+        
+        
         ele.append(background)
-        ele.append(newButtom)
         ele.append(style)
+        ele.append(newButtom)
         ele.append(settingsPane)
 
-        return {eles : {newButtom, settingsPane, background} , removeEles}
+        return {eles: {newButtom, settingsPane, background}}
 
-        function removeEles () {
-            newButtom.remove()
-            style.remove()
-            settingsPane.remove()
-            background.remove()
-    
-        }
     }
 
 
 }
-
-

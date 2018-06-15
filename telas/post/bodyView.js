@@ -34,7 +34,7 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
     const newTela = _['tools/myTelas'].new
     const newEle = _['tools/myLib'].newEle
-    const getMyMove = _['tools/myMove']
+    const getMyMove = _['tools/myMove/init.js']
     const blinkStar = _['telas/feed/blinkStar']
     const myIcos = _['img/myIcos']
 
@@ -46,7 +46,7 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
 
 
-    let thisEle = newEle(`<div class="post-body tela headspace"  data-act="remove">
+    let thisEle = newEle(`<div class="post-body tela headspace"  data-act="jump">
         
         <style>
 
@@ -61,6 +61,10 @@ _['telas/post/bodyView'] = function createbodyView (data) {
                 overflow: auto;
                 width: 100%;
             }
+
+                .post-body_box1::-webkit-scrollbar {
+                    display: none;
+                }
 
                 .post-body_puxe {
                     height: 35px;
@@ -145,8 +149,8 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
         </style> 
 
-        <div class="post-body_box1">
-            <div class="post-body_box2">
+        <div class="post-body_box1 my_scrollbar"  data-act="jump">
+            <div class="post-body_box2"  data-act="jump">
                 <div class="post-body_puxe">
                     <div class="post-body_puxe_text">puxe</div>
                 </div>
@@ -191,6 +195,8 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
     thisTela.addActions({
         'tapStar' (dataset, ele) {
+            if(!pullModule.isClickAllowed()) {return}
+            
             const blinkingPromise = blinkStar({ele, onClass: 'post-body_like_liked'})
             
             if(blinkingPromise !== undefined){
@@ -203,8 +209,11 @@ _['telas/post/bodyView'] = function createbodyView (data) {
         'remove' () {
             //module.remove()
             //module.listeners.onClosedPost()
+        },
+        'jump' () {
+            if(!pullModule.isClickAllowed()) {return}
+            pullModule.jump()
         }
-
     })
 
 
@@ -247,20 +256,7 @@ _['telas/post/bodyView'] = function createbodyView (data) {
     module.remove = async function () {
         if(removing) return
         removing = true
-        pullModule.stop()
-        thisEle.style.willChange = 'opacity'
-        postBoxEle.style.willChange = 'transform'
-        thisEle.style.transition = 'opacity 0.2s'
-        postBoxEle.style.transition = 'transform 0.2s'
-
-        await new Promise(requestAnimationFrame)
-    
-        thisEle.style.opacity = '0'
-        postBoxEle.style.transform = 'scale(0.5)'
-    
-        await new Promise(resolve => thisEle.addEventListener('transitionend', resolve, {once: true}))
-
-        thisTela.remove()
+        pullModule.close()
     }
 
 
@@ -275,120 +271,125 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
     function initPull () {
         const module = {}
-        let startY = undefined
-        let state = 'undefined'
-        let touchStartTime = 0
-        let touchedPost =  false
-        let syncEvents = 'startPhase'
         const maxValue = scrollerEle.offsetHeight
+        let puxeEleVisible = false
+        let clickAllowed = true
 
-        
 
-        const moveModule = getMyMove(renderMove, {maxValue})
 
-        moveModule.listeners = {
-            startMove () {
-                postBoxEle.style.willChange = 'transform'
-                thisEle.style.willChange = 'opacity'
-            },
-            endMove (arg) {
-                if(arg === 'reachedMax') {
-                    module.listeners.onPullComplete()
-                    return
+        const moveModule = getMyMove(renderMove, maxValue, thisEle)
+
+        moveModule.onStartMove = () => {
+            if(state.value == 'scrolling'){ 
+                moveModule.cancelMove()
+                return
+            }
+            
+            postBoxEle.style.willChange = 'transform'
+            thisEle.style.willChange = 'opacity'
+        },
+
+        moveModule.onEndMove = (arg) => {
+            if(arg === 'max') {
+                module.listeners.onPullComplete()
+            }
+            else if(arg === 'zero') {
+                if(state.value == 'moving'){
+                    state.resetMoving()
                 }
-                else if(arg === 'reachedMin') {
-                    if(state == 'moving'){
-                        state = 'undefined'
-                        scrollerEle.style.overflow = 'auto'
-                        puxeEle.style.visibility = 'hidden'
-                    }
-                }
 
+                if(puxeEleVisible){
+                    puxeEleVisible = false
+                    puxeEle.style.visibility = 'hidden'
+                }
+                
                 postBoxEle.style.willChange = ''
                 thisEle.style.willChange = ''
             }
         }
+  
 
 
-        thisEle.addEventListener('touchstart', (e) => {
-            if(syncEvents != 'startPhase') return
-            syncEvents = 'endPhase'
-            const touchY = e.touches[0].pageY
-
-            if(state == 'scrolling' && scrollerEle.scrollTop === 0){
-                state = 'undefined'
-            } 
-
-            touchStartTime = Date.now()
-            touchedPost = postEle.contains(e.target)
-
-
-            if(state != 'scrolling') {
-                moveModule.move(touchY)
+        scrollerEle.addEventListener('scroll', () => {
+            if(state.value == 'undefined') { 
+                if(scrollerEle.scrollTop != 0) {
+                    state.setScrolling()
+                }
             }
-
-            startY = touchY
-        
+            else if(state.value == 'scrolling') { 
+                if(scrollerEle.scrollTop == 0) { 
+                    state.resetScrolling()
+                }
+            }
         }, {passive: true})
 
 
 
-        thisEle.addEventListener('touchmove', (e) => {
-            if(syncEvents != 'endPhase') return
-            const touchY = e.touches[0].pageY
 
-            
-            if (state == 'undefined') {
-                const scrolling = touchY < startY
-                if (scrolling) {
-                    state = 'scrolling'
-                    moveModule.cancelMove()
-                }
-                else {
-                    state = 'moving'
-                    scrollerEle.style.overflow = 'hidden'
-                }
-            }
-
-            if(state == 'moving') {
-                moveModule.move(touchY)
-            }
-
-        }, {passive: true})
-
-
-
-        thisEle.addEventListener('touchend', (e) => {
-            if(syncEvents != 'endPhase') return
-            syncEvents = 'startPhase'
-            const touchY = e.changedTouches[0].pageY
-            const clicked = (Date.now() - touchStartTime) < 300
-            const clickOk = clicked && !touchedPost && state == 'undefined'
-            
-            if(clickOk){
-                state = 'moving'
+        const state = {
+            value: 'undefined',
+            setScrolling () { 
+                moveModule.cancelMove()
+                this.value = 'scrolling'
+            },
+            setMoving () {
                 scrollerEle.style.overflow = 'hidden'
-                moveModule.moveJump(touchY)
-                puxeEle.style.visibility = 'visible'
+                clickAllowed = false
+                this.value = 'moving'
+            },
+            resetScrolling () { 
+                this.value = 'undefined'
+            },
+            resetMoving () {
+                scrollerEle.style.overflow = 'auto'
+                setTimeout(() => {
+                    clickAllowed = true
+                }, 300)
+                this.value = 'undefined'
+
             }
-            else if(state == 'moving') {
-                moveModule.endMove(touchY)
-            }
-
-            touchStartTime = 0
-            touchedPost = false
-            startY = undefined
-        }, {passive: true})
-
-
-        module.stop = ()=>{
-            moveModule.cancelMove()
         }
-        
+
+
+
+
+
+        module.jump = () => {
+            if(state.value == 'scrolling') {return}
+
+            puxeEle.style.visibility = 'visible'
+            puxeEleVisible = true
+            
+            moveModule.jump()
+        }
+
+        module.close = () => {
+            if(state.value == 'scrolling') {
+                state.resetScrolling()
+            }
+            
+            moveModule.switch()
+        }
+
+        module.isClickAllowed = () => {
+            return clickAllowed
+        }
+
         return module
 
 
+
+        
+
         function renderMove (moveValue) {
+            if(state.value == 'undefined') {
+                if(moveValue != 0){
+                    state.setMoving()
+                }
+            }
+           
+
+
             //translate
             var scaleValue = 1.5 - (moveValue/(maxValue*2) + 0.5)
             postBoxEle.style.transform = `scale(${scaleValue})`
@@ -404,3 +405,6 @@ _['telas/post/bodyView'] = function createbodyView (data) {
 
 
 }
+
+
+
