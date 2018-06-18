@@ -215,18 +215,9 @@ _['telas/post/view'] = function createPostView ({initialTab, bellState}) {
     function getChangeTab () {
         let actualTab = initialTab
 
-       
-
-        return function changeTab (tab, {callListener = true} = {}) {
-            
+       return function changeTab (tab, {callListener = true} = {}) {
             if(actualTab == tab) return
             actualTab = tab
-
-            if(callListener) {
-                module.listeners.onChangeTab(tab)
-            }
-            
-
 
             mutateAndFade(tabEle, (clone) => {
                 const cloneButtons = clone.querySelectorAll('.post-head_tabs_butt')
@@ -238,6 +229,9 @@ _['telas/post/view'] = function createPostView ({initialTab, bellState}) {
                 tabEle = clone
             })
 
+            if(callListener) {
+                module.listeners.onChangeTab(tab)
+            }
         }
     }
 

@@ -75,12 +75,13 @@ _['tools/myMove/init.js'] = function getMyMove (renderFun, maxValue, eleToListen
     toss.listeners = {
         move (rawValue) {
             const renderedValue = render.move(rawValue)
-            renderFun(renderedValue)
-
+            
             const position = render.getPosition()        
             if(position != 'mid'){
                 end(position)
             }
+
+            renderFun(renderedValue)
         }
     }   
 

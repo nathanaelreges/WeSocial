@@ -230,8 +230,8 @@ _['telas/post/bodyView'] = function createbodyView (data) {
           pullModule.listeners = {
               onPullComplete () {
                 thisTela.remove()
-                thisEle.remove()//Temoporary fix
                 module.listeners.onClosedPost()
+                thisEle.remove()//Temoporary fix
               }
           }
         }
